@@ -106,6 +106,56 @@ class DefaultClient(object):
         """
         return self.connection_factory.connect(self._server[index])
 
+
+    def set_raw(self, key, value, timeout=DEFAULT_TIMEOUT, version=None,
+            client=None, nx=False, xx=False
+            ):
+        """
+        Persist a value to the cache, and set an optional expiration time.
+        Also supports optional nx parameter. If set to True - will use redis setnx instead of set.
+        """
+        nkey = self.make_key(key, version=None)
+        nvalue = value
+
+        if timeout is True:
+            warnings.warn("Using True as timeout value, is now deprecated.", DeprecationWarning)
+            timeout = self._backend.default_timeout
+
+        if timeout == DEFAULT_TIMEOUT:
+            timeout = self._backend.default_timeout
+
+        original_client = client
+        tried = []
+        while True:
+            try:
+                if not client:
+                    client, index = self.get_client(write=True, tried=tried, show_index=True)
+
+                if timeout is not None:
+                    if timeout > 0:
+                        # Convert to milliseconds
+                        timeout = int(timeout * 1000)
+                    elif timeout <= 0:
+                        if nx:
+                            # Using negative timeouts when nx is True should
+                            # not expire (in our case delete) the value if it exists.
+                            # Obviously expire not existent value is noop.
+                            timeout = None
+                        else:
+                            # redis doesn't support negative timeouts in ex flags
+                            # so it seems that it's better to just delete the key
+                            # than to set it and than expire in a pipeline
+                            return self.delete(key, client=client, version=version)
+
+                return client.set(nkey, nvalue, nx=nx, px=timeout, xx=xx)
+            except _main_exceptions as e:
+                if not original_client and not self._slave_read_only and len(tried) < len(self._server):
+                    tried.append(index)
+                    client = None
+                    continue
+                raise ConnectionInterrupted(connection=client, parent=e)
+
+
     def set(self, key, value, timeout=DEFAULT_TIMEOUT, version=None, client=None, nx=False, xx=False):
         """
         Persist a value to the cache, and set an optional expiration time.

@@ -76,6 +76,23 @@ class RedisCache(BaseCache):
     def add(self, *args, **kwargs):
         return self.client.add(*args, **kwargs)
 
+    def set_raw(self, key, value, timeout=None):
+        return self.client.set_raw(key, value, timeout)
+
+
+    def get_raw(self, key, default=None, version=None, client=None, decode=True):
+        try:
+            return self.client.get(key, default=default, version=version,
+                                   client=client)
+        except ConnectionInterrupted as e:
+            if DJANGO_REDIS_IGNORE_EXCEPTIONS or self._ignore_exceptions:
+                if DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS:
+                    logger.error(str(e))
+                return default
+            raise
+
+
+
     @omit_exception
     def get(self, key, default=None, version=None, client=None):
         try:
