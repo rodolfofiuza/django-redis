@@ -9,13 +9,14 @@ import zlib
 from collections import OrderedDict
 
 from django.conf import settings
-from django.core.cache.backends.base import DEFAULT_TIMEOUT, get_key_func
+from django.core.cache.backends.base import get_key_func
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.encoding import smart_text
 
 from redis.exceptions import ConnectionError
 from redis.exceptions import ResponseError
 
+DEFAULT_TIMEOUT = 3600
 # Compatibility with redis-py 2.10.x+
 
 try:
