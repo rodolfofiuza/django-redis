@@ -82,7 +82,7 @@ class RedisCache(BaseCache):
 
     def get_raw(self, key, default=None, version=None, client=None, decode=True):
         try:
-            return self.client.get(key, default=default, version=version,
+            return self.client.get_raw(key, default=default, version=version,
                                    client=client)
         except ConnectionInterrupted as e:
             if DJANGO_REDIS_IGNORE_EXCEPTIONS or self._ignore_exceptions:

@@ -264,6 +264,28 @@ class DefaultClient(object):
 
         return self.decode(value)
 
+    def get_raw(self, key, default=None, version=None, client=None):
+        """
+        Retrieve a value from the cache.
+
+        Returns decoded value if key is found, the default if not.
+        """
+        if client is None:
+            client = self.get_client(write=False)
+
+        key = self.make_key(key, version=version)
+
+        try:
+            value = client.get(key)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client, parent=e)
+
+        if value is None:
+            return default
+
+        return value
+
+
     def persist(self, key, version=None, client=None):
         if client is None:
             client = self.get_client(write=True)
